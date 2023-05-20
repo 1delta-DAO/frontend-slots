@@ -38,6 +38,7 @@ import { formatEther, parseUnits } from "@ethersproject/units";
 import { useOpenPosition } from "../../hooks/useOpenPosition";
 import { BigNumber, ethers } from "ethers";
 import { getBalance } from "../../contracts/erc20.contract";
+import { usePermit } from "../../hooks/usePermit";
 
 export const FxTab: React.FC = () => {
   const [selectedToken, setSelectedToken] = useState<number>(0);
@@ -261,6 +262,7 @@ export const FxTab: React.FC = () => {
     onOpenPosition();
   };
 
+  const { permit, signPermit } = usePermit(projectedAddress, selectedCoin?.address, deposit)
 
   const onActionButtonClickedApprove = (): void => {
     if (projectedAddress) {
@@ -278,13 +280,21 @@ export const FxTab: React.FC = () => {
   };
 
   const renderButton = (): React.ReactNode => {
-    if (parseUnits(deposit, collateralDecimals).gte(amountApproved)) {
+    if (parseUnits(deposit, collateralDecimals).gte(amountApproved) || permit) {
       return (
-        <div
-          className={styles["action"]}
-          onClick={onActionButtonClickedApprove}
-          onKeyDown={onActionButtonClickedApprove}>
-          Approve {tokens[selectedToken]?.label}
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+          <div
+            className={styles["action"]}
+            onClick={onActionButtonClickedApprove}
+            onKeyDown={onActionButtonClickedApprove}>
+            Approve {tokens[selectedToken]?.label}
+          </div>
+          <div
+            className={styles["action"]}
+            onClick={signPermit}
+            onKeyDown={signPermit}>
+            Sign {tokens[selectedToken]?.label}
+          </div>
         </div>
       );
     }
