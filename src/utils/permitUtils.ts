@@ -1,9 +1,9 @@
 import { splitSignature } from "ethers/lib/utils"
 import { BigNumber } from "ethers";
 import { ethers } from "ethers";
-import { JsonRpcSigner } from "@ethersproject/providers";
+import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
 import { Erc20, FiatWithPermit } from "../abi/types";
-import * as FIAT_ABI from "../abi/fiat-with-permit.json";
+import FIAT_ABI from "../abi/fiat-with-permit.json";
 
 const EIP712_DOMAIN_TYPE = [
     { name: 'name', type: 'string' },
@@ -31,8 +31,9 @@ const permitVersion = '1'
  * @returns 
  */
 export const produceSig = async (
+    chainId: number,
     userAddress: string,
-    signer: any,
+    signer: JsonRpcProvider,
     spender: string,
     tokenAddress: string,
     amount: string
@@ -47,7 +48,6 @@ export const produceSig = async (
         nonce,
         deadline: ethers.constants.MaxUint256,
     }
-    const chainId = await signer.getChainId()
     const name = await token.name()
     const domain = {
         name,
@@ -66,9 +66,9 @@ export const produceSig = async (
         primaryType: 'Permit',
         message,
     }
+    const _signer = await signer.getSigner()
 
-
-    const signature = await signer._signTypedData(domain, { Permit: rawData.types.Permit }, rawData.message)
+    const signature = await _signer._signTypedData(domain, { Permit: rawData.types.Permit }, rawData.message)
 
     const split = splitSignature(signature)
     return { signature, split }

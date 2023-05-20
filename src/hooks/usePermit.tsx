@@ -21,14 +21,14 @@ interface UsePermit {
 export const usePermit = (
   spenderAddress: string, tokenAddress: string | undefined, amount: string
 ): UsePermit => {
-  const { library, account } = useWeb3React<JsonRpcProvider>();
+  const { library, account, chainId } = useWeb3React<JsonRpcProvider>();
 
   const [permit, setPermit] = useState<PermitData | undefined>(undefined)
 
   const signPermit = useCallback(async () => {
-    if (library && account && tokenAddress) {
+    if (library && account && tokenAddress && chainId) {
       try {
-        const sig = await produceSig(account, library, spenderAddress, tokenAddress, amount);
+        const sig = await produceSig(chainId, account, library, spenderAddress, tokenAddress, amount);
         setPermit(sig)
       } catch (e) {
         console.log("Error creating permit signature:", e)
