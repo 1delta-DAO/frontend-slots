@@ -147,50 +147,6 @@ export const FxTab: React.FC = () => {
     setInput,
   ]);
 
-  const { openPosition } = useOpenPosition();
-
-  const onOpenPosition = useCallback(() => {
-    let depositAmount = "0";
-    try {
-      depositAmount = parseUnits(
-        String(deposit),
-        collateralDecimals
-      ).toString();
-    } catch (e) {
-      console.log("depositAmount", e);
-    }
-
-    let targetAmount = "0";
-    try {
-      targetAmount = BigNumber.from(data.toTokenAmount)
-        .mul(99)
-        .div(100)
-        .toString();
-    } catch (e) {
-      console.log("targetAmount", e);
-    }
-
-    const borrowAmount = data?.fromTokenAmount ?? "0";
-
-    let calldata = "0x";
-
-    try {
-      calldata = data?.tx?.data;
-    } catch (e) {
-      console.log("calldata", e);
-    }
-    if (aaveCollateralAddress && aaveDebtAddress) {
-      return openPosition(
-        depositAmount,
-        aaveCollateralAddress,
-        aaveDebtAddress,
-        targetAmount,
-        borrowAmount,
-        calldata
-      );
-    }
-  }, [aaveCollateralAddress, aaveDebtAddress, deposit, data]);
-
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
       if (
@@ -257,12 +213,59 @@ export const FxTab: React.FC = () => {
     setLeverage(leverage);
   };
 
+  const depositAmount = useMemo(() => {
+    try {
+      return parseUnits(
+        String(deposit),
+        collateralDecimals
+      ).toString();
+
+    } catch (e) {
+      console.log("depositAmount", e);
+      return '0'
+    }
+  }, [deposit, collateralDecimals])
+
+  const { permit, signPermit } = usePermit(projectedAddress, selectedCoin?.address, depositAmount)
+
+  const { openPosition } = useOpenPosition(permit);
+
+  const onOpenPosition = useCallback(() => {
+    let targetAmount = "0";
+    try {
+      targetAmount = BigNumber.from(data.toTokenAmount)
+        .mul(99)
+        .div(100)
+        .toString();
+    } catch (e) {
+      console.log("targetAmount", e);
+    }
+
+    const borrowAmount = data?.fromTokenAmount ?? "0";
+
+    let calldata = "0x";
+
+    try {
+      calldata = data?.tx?.data;
+    } catch (e) {
+      console.log("calldata", e);
+    }
+    if (aaveCollateralAddress && aaveDebtAddress) {
+      return openPosition(
+        depositAmount,
+        aaveCollateralAddress,
+        aaveDebtAddress,
+        targetAmount,
+        borrowAmount,
+        calldata
+      );
+    }
+  }, [aaveCollateralAddress, aaveDebtAddress, depositAmount, data, permit]);
+
   const onActionButtonClicked = (): void => {
     console.log("onActionButtonClicked");
     onOpenPosition();
   };
-
-  const { permit, signPermit } = usePermit(projectedAddress, selectedCoin?.address, deposit)
 
   const onActionButtonClickedApprove = (): void => {
     if (projectedAddress) {
@@ -280,7 +283,16 @@ export const FxTab: React.FC = () => {
   };
 
   const renderButton = (): React.ReactNode => {
-    if (parseUnits(deposit, collateralDecimals).gte(amountApproved) || permit) {
+    if (permit || parseUnits(deposit, collateralDecimals).lte(amountApproved))
+      return (
+        <div
+          className={styles["action"]}
+          onClick={onActionButtonClicked}
+          onKeyDown={onActionButtonClicked}>
+          Buy / Long {tokens[selectedToken]?.label}
+        </div>
+      );
+    else {
       return (
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
           <div
@@ -299,14 +311,6 @@ export const FxTab: React.FC = () => {
       );
     }
 
-    return (
-      <div
-        className={styles["action"]}
-        onClick={onActionButtonClicked}
-        onKeyDown={onActionButtonClicked}>
-        Buy / Long {tokens[selectedToken]?.label}
-      </div>
-    );
   };
 
   return (

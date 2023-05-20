@@ -12,6 +12,13 @@ const EIP712_DOMAIN_TYPE = [
     { name: 'verifyingContract', type: 'address' },
 ]
 
+const EIP712_DOMAIN_TYPE_USDC_POLYGON = [
+    { name: 'name', type: 'string' },
+    { name: 'version', type: 'string' },
+    { name: 'salt', type: 'bytes37' },
+    { name: 'verifyingContract', type: 'address' },
+]
+
 const EIP2612_TYPE = [
     { name: 'owner', type: 'address' },
     { name: 'spender', type: 'address' },
@@ -38,8 +45,9 @@ export const produceSig = async (
     tokenAddress: string,
     amount: string
 ) => {
+    const _signer = await signer.getSigner()
     const account = userAddress
-    const token = new ethers.Contract(tokenAddress, FIAT_ABI, signer) as FiatWithPermit
+    const token = new ethers.Contract(tokenAddress, FIAT_ABI, _signer) as FiatWithPermit
     const nonce = await token.nonces(account)
     const message = {
         owner: account,
@@ -49,24 +57,30 @@ export const produceSig = async (
         deadline: ethers.constants.MaxUint256,
     }
     const name = await token.name()
-    const domain = {
+    let domain: any = {
         name,
         verifyingContract: token.address,
         chainId,
         version: permitVersion
     }
-
+    const isWeirdUSDC = chainId === 137 && tokenAddress.toLowerCase() === '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'.toLowerCase()
+    if (isWeirdUSDC)
+        domain = {
+            name,
+            verifyingContract: token.address,
+            salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(137).toHexString(), 32),
+            version: permitVersion
+        }
 
     const rawData = {
         types: {
-            EIP712Domain: EIP712_DOMAIN_TYPE,
+            EIP712Domain: isWeirdUSDC ? EIP712_DOMAIN_TYPE_USDC_POLYGON : EIP712_DOMAIN_TYPE,
             Permit: EIP2612_TYPE,
         },
         domain,
         primaryType: 'Permit',
         message,
     }
-    const _signer = await signer.getSigner()
 
     const signature = await _signer._signTypedData(domain, { Permit: rawData.types.Permit }, rawData.message)
 
@@ -112,7 +126,6 @@ export const produceCloseSig = async (
         chainId,
         version: '1'
     }
-
 
     const rawData = {
         types: {

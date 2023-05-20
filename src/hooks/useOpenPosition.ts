@@ -7,6 +7,7 @@ import { useTxWaitModal } from "../components/modal/modals/tx-wait/tx-wait.modal
 import { extractRevertReason, JsonRpcError } from "../utils/blockchain";
 import { useUserPositions } from "./useUserPositions";
 import { createSlot } from "../contracts/fx-factory.contract";
+import { PermitData } from "./usePermit";
 
 interface UseOpenPosution {
     openPosition: (
@@ -19,19 +20,18 @@ interface UseOpenPosution {
     ) => void;
 }
 
-export const useOpenPosition = (): UseOpenPosution => {
+export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution => {
     const { library, account } = useWeb3React<JsonRpcProvider>();
     const txAwaitModal = useTxWaitModal();
     const { refresh } = useUserPositions();
-
-    const openPosition = (
+    const openPosition = useCallback((
         depositAmount: string,
         collateralA: string,
         debtV: string,
         targetCollateral: string,
         borrowBase: string,
         data1inch: string
-    ): void => {
+    ) => {
         if (library && account) {
             txAwait(
                 createSlot(
@@ -42,11 +42,13 @@ export const useOpenPosition = (): UseOpenPosution => {
                     targetCollateral,
                     borrowBase,
                     data1inch,
-                    library
+                    library,
+                    permit
                 )
             );
         }
-    };
+    },
+        [permit, library, account])
 
     const txAwait = useCallback(
         (tx: Promise<ContractTransaction>): void => {

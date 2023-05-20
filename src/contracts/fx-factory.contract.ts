@@ -2,7 +2,8 @@ import { FxFactory } from "../abi/types";
 import { getContract } from "../utils/blockchain";
 import FACTORY_ABI from "../abi/1fx-factory.json";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import { ContractTransaction } from "ethers";
+import { BigNumberish, BytesLike, ContractTransaction } from "ethers";
+import { PermitData } from "../hooks/usePermit";
 
 const contractFactoryAddress = "0x648cE75895873BECBC4c9a291A28CA1EF121953B";
 
@@ -25,17 +26,32 @@ export const createSlot = async (
   targetCollateral: string,
   borrowBase: string,
   data1inch: string,
-  library: JsonRpcProvider
+  library: JsonRpcProvider,
+  permitData: PermitData | undefined
 ): Promise<ContractTransaction> => {
-  return getFxFactoryContract
-    .connect(library.getSigner())
-    .createSlot(
-      user,
-      depositAmount,
-      collateralA,
-      debtV,
-      targetCollateral,
-      borrowBase,
-      data1inch
-    );
+  if (!permitData)
+    return getFxFactoryContract
+      .connect(library.getSigner())
+      .createSlot(
+        user,
+        depositAmount,
+        collateralA,
+        debtV,
+        targetCollateral,
+        borrowBase,
+        data1inch
+      );
+  else {
+    console.log("using permit")
+    return getFxFactoryContract
+      .connect(library.getSigner())
+      .createSlotWithPermit(
+        collateralA,
+        debtV,
+        targetCollateral,
+        borrowBase,
+        data1inch,
+        permitData
+      );
+  }
 };
