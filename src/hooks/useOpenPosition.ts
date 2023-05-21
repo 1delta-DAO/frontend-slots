@@ -1,7 +1,7 @@
 import { JsonRpcProvider, StaticJsonRpcProvider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
 import { ContractTransaction, ethers } from "ethers";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useTxWaitModal } from "../components/modal/modals/tx-wait/tx-wait.modal";
 
 import { extractRevertReason, JsonRpcError } from "../utils/blockchain";
@@ -18,16 +18,21 @@ interface UseOpenPosution {
         borrowBase: string,
         data1inch: string
     ) => void;
+    hash: string | undefined,
+    isLoading: boolean
 }
 
 export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution => {
     const { library, account } = useWeb3React<JsonRpcProvider>();
     const txAwaitModal = useTxWaitModal();
+    const [isLoading, setIsLoading] = useState(false)
     const { refresh } = useUserPositions();
-    const hasRelayer = Boolean(process.env.RELAYER_PK)
-    const relayerWallet = hasRelayer ? new ethers.Wallet(process.env.RELAYER_PK,
+    const pk = process.env.RELAYER_PK 
+    const hasRelayer = Boolean(pk)
+    const relayerWallet = hasRelayer ? new ethers.Wallet(pk,
         new StaticJsonRpcProvider('https://rpc.ankr.com/polygon', { chainId: 137, name: 'Polygon' })) : undefined
-
+    const [hash, setHash] = useState<string | undefined>(undefined)
+    const hasPermit = Boolean(permit)
     const openPosition = useCallback((
         depositAmount: string,
         collateralA: string,
@@ -59,9 +64,16 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
     const txAwait = useCallback(
         (tx: Promise<ContractTransaction>): void => {
             tx.then(async (tx) => {
-                txAwaitModal.showModal();
+                if (hasPermit)
+                    setIsLoading(true)
+                else
+                    txAwaitModal.showModal();
+                console.log("hash", tx.hash)
+                setHash(tx.hash)
                 await tx.wait(1);
-                txAwaitModal.closeModal();
+                if (hasPermit || isLoading)
+                    setIsLoading(false)
+                else txAwaitModal.closeModal();
                 refresh();
             }).catch((error: JsonRpcError | { error: JsonRpcError }) => {
                 const err =
@@ -69,11 +81,12 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
                         ? (error as { error: JsonRpcError }).error
                         : (error as JsonRpcError);
                 txAwaitModal.closeModal();
-                console.log(extractRevertReason(err));
+                setIsLoading(false)
+                console.log(extractRevertReason(err), error);
             });
         },
         [txAwaitModal, refresh]
     );
 
-    return { openPosition };
+    return { openPosition, hash, isLoading };
 };

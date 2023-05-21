@@ -29,7 +29,7 @@ import selectPairStyles from "../../components/select-pair/SelectPair.module.scs
 import { SelectPairComponent } from "../../components/select-pair/SelectPair.component";
 import Slider from "../../components/slider/Slider.component";
 import { useUserPositions } from "../../hooks/useUserPositions";
-import { PositionTable } from "../../components/position-table/positionTable.component";
+import { linkSvg, PositionTable } from "../../components/position-table/positionTable.component";
 import { useApprove } from "../../hooks/useApprove";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
@@ -56,6 +56,8 @@ export const FxTab: React.FC = () => {
   const { userPositions, getNextAddress } = useUserPositions();
   const { data, setInput } = use1inchApi();
   const [projectedAddress, setProjectedAddress] = useState("");
+
+  const [refresher, setRefresh] = useState(0)
 
   const tokens = useMemo(
     () =>
@@ -97,6 +99,9 @@ export const FxTab: React.FC = () => {
     ]
   )
 
+  const [repeater, setRepeater] = useState(0)
+
+
   useEffect(() => {
     const fetchBalance = async (): Promise<string> => {
       if (account && selectedCoin?.address) {
@@ -112,9 +117,9 @@ export const FxTab: React.FC = () => {
       }
       return '0'
     }
-
     fetchBalance()
-  }, [selectedCoin, account]
+    setTimeout(() => setRepeater((prevState) => prevState + 1), 5000)
+  }, [selectedCoin, account, repeater]
   )
 
   useEffect(() => {
@@ -195,7 +200,7 @@ export const FxTab: React.FC = () => {
   const onDepositChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ): void => {
-    const amount = event.target.value;
+    const amount = event.target.value //.replace(/[^a-z]/gi, '')
     setDeposit(amount);
     setLong(Number(amount) * leverage);
   };
@@ -228,7 +233,7 @@ export const FxTab: React.FC = () => {
 
   const { permit, signPermit } = usePermit(projectedAddress, selectedCoin?.address, depositAmount)
 
-  const { openPosition } = useOpenPosition(permit);
+  const { openPosition, hash, isLoading } = useOpenPosition(permit);
 
   const onOpenPosition = useCallback(() => {
     let targetAmount = "0";
@@ -282,7 +287,34 @@ export const FxTab: React.FC = () => {
     }
   };
 
+  const onClickLink = (address: string) => {
+    window.open(
+      "https://polygonscan.com/tx/" + address,
+      "_blank"
+    );
+  };
+
   const renderButton = (): React.ReactNode => {
+    if (isLoading && hash)
+      return (
+        <div
+          className={styles["action"]}
+          onClick={onActionButtonClicked}
+          onKeyDown={onActionButtonClicked}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} >
+            Executing
+            <SpinnerComponent size="small" />
+            <svg
+              width="16"
+              height="16"
+              viewBox={`0 0 512 512`}
+              onClick={() => onClickLink(hash)}
+              className={styles["link"]}>
+              <path d={linkSvg} fill="#0caf48" />
+            </svg>
+          </div>
+        </div>
+      );
     if (permit || parseUnits(deposit, collateralDecimals).lte(amountApproved))
       return (
         <div
@@ -347,7 +379,7 @@ export const FxTab: React.FC = () => {
             <div className={styles["collateral-left"]}>
               <input
                 onChange={onDepositChange}
-                type="text"
+                type="number"
                 value={deposit}
                 disabled={false}
                 inputMode="decimal"
