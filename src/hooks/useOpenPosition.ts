@@ -22,12 +22,13 @@ interface UseOpenPosution {
     isLoading: boolean
 }
 
+const pk = process.env.RELAYER_PK 
+
 export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution => {
     const { library, account } = useWeb3React<JsonRpcProvider>();
     const txAwaitModal = useTxWaitModal();
     const [isLoading, setIsLoading] = useState(false)
     const { refresh } = useUserPositions();
-    const pk = process.env.RELAYER_PK 
     const hasRelayer = Boolean(pk)
     const relayerWallet = hasRelayer ? new ethers.Wallet(pk,
         new StaticJsonRpcProvider('https://rpc.ankr.com/polygon', { chainId: 137, name: 'Polygon' })) : undefined
