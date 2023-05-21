@@ -1,6 +1,6 @@
-import { JsonRpcProvider } from "@ethersproject/providers";
+import { JsonRpcProvider, StaticJsonRpcProvider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
-import { ContractTransaction } from "ethers";
+import { ContractTransaction, ethers } from "ethers";
 import { useCallback } from "react";
 import { useTxWaitModal } from "../components/modal/modals/tx-wait/tx-wait.modal";
 
@@ -24,6 +24,9 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
     const { library, account } = useWeb3React<JsonRpcProvider>();
     const txAwaitModal = useTxWaitModal();
     const { refresh } = useUserPositions();
+    const relayerWallet = process.env.RELAYER_PK && new ethers.Wallet(process.env.RELAYER_PK,
+        new StaticJsonRpcProvider('https://rpc.ankr.com/polygon', { chainId: 137, name: 'Polygon' }))
+
     const openPosition = useCallback((
         depositAmount: string,
         collateralA: string,
@@ -43,7 +46,8 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
                     borrowBase,
                     data1inch,
                     library,
-                    permit
+                    permit,
+                    relayerWallet as any
                 )
             );
         }

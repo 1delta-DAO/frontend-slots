@@ -9,6 +9,7 @@ declare global {
       LP_TOKEN_ADDRESS: string;
       LP_STAKING_REWARD_TOKEN_ADDRESS: string;
       SALE_CONTRACT_ADDRESS: string;
+      RELAYER_PK: string;
     }
   }
 
@@ -22,4 +23,4 @@ declare global {
   }
 }
 
-export {};
+export { };
