@@ -25,7 +25,6 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
     const txAwaitModal = useTxWaitModal();
     const { refresh } = useUserPositions();
     const hasRelayer = Boolean(process.env.RELAYER_PK)
-    if (!hasRelayer) console.log("no relayer found")
     const relayerWallet = hasRelayer ? new ethers.Wallet(process.env.RELAYER_PK,
         new StaticJsonRpcProvider('https://rpc.ankr.com/polygon', { chainId: 137, name: 'Polygon' })) : undefined
 
@@ -38,6 +37,7 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
         data1inch: string
     ) => {
         if (library && account) {
+            if (!hasRelayer) console.log("no relayer found")
             txAwait(
                 createSlot(
                     account,
@@ -54,7 +54,7 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
             );
         }
     },
-        [permit, library, account])
+        [permit, library, account, relayerWallet])
 
     const txAwait = useCallback(
         (tx: Promise<ContractTransaction>): void => {
