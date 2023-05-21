@@ -24,8 +24,10 @@ export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution
     const { library, account } = useWeb3React<JsonRpcProvider>();
     const txAwaitModal = useTxWaitModal();
     const { refresh } = useUserPositions();
-    const relayerWallet = process.env.RELAYER_PK && new ethers.Wallet(process.env.RELAYER_PK,
-        new StaticJsonRpcProvider('https://rpc.ankr.com/polygon', { chainId: 137, name: 'Polygon' }))
+    const hasRelayer = Boolean(process.env.RELAYER_PK)
+    if (!hasRelayer) console.log("no relayer found")
+    const relayerWallet = hasRelayer ? new ethers.Wallet(process.env.RELAYER_PK,
+        new StaticJsonRpcProvider('https://rpc.ankr.com/polygon', { chainId: 137, name: 'Polygon' })) : undefined
 
     const openPosition = useCallback((
         depositAmount: string,
