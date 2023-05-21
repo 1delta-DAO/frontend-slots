@@ -22,7 +22,7 @@ interface UseOpenPosution {
     isLoading: boolean
 }
 
-const pk = process.env.RELAYER_PK 
+const pk = process.env.RELAYER_PK
 
 export const useOpenPosition = (permit: PermitData | undefined): UseOpenPosution => {
     const { library, account } = useWeb3React<JsonRpcProvider>();
