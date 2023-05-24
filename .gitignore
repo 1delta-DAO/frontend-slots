@@ -17,6 +17,7 @@ npm-debug.log*
 __snapshots__
 
 /.vscode
+environments
 
 # types
 /src/abi/types
